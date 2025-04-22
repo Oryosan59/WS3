@@ -18,7 +18,7 @@ struct GamepadData
 };
 
 // ボタンの定義
-enum GamepadButton : uint16_t // Explicit underlying type
+enum GamepadButton : uint32_t // Explicit underlying type
 {
     None = 0x0000,
     DPadUp = 0x0001,
