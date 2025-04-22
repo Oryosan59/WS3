@@ -10,7 +10,7 @@ INC_DIR = include # Project's own include directory
 
 # --- External Library Paths ---
 # Use the specific path provided in the command
-NAVIGATOR_LIB_PATH = /home/pi/navigator-lib/target/debug
+NAVIGATOR_LIB_PATH ?= $(HOME)/navigator-lib/target/debug
 
 # --- Include Directories ---
 # Add project's include dir and external lib include dir
