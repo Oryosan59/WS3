@@ -132,26 +132,33 @@ static void update_horizontal_thrusters(const GamepadData& data, int pwm_out[4])
     // Final clamping is done in set_thruster_pwm
 }
 
-// 前後進スラスター制御ロジック (controlForwardThrusterの内容を移植・調整)
-// Note: Original code only handled forward (value > DEADZONE). Assuming bi-directional control needed.
+// 前進/後退スラスター制御ロジック
 static int calculate_forward_reverse_pwm(int value) {
     int pulse_width;
-    // Using PWM_BOOST_MAX as the limit for forward/reverse thrust
-    const int current_max_pwm = PWM_BOOST_MAX;
-    const int current_min_pwm = PWM_MIN; // Assuming reverse uses the same range mirrored
+    // 定数を直接使用 (ヘッダーファイルで定義されている値)
+    const int current_max_pwm = PWM_BOOST_MAX; // 1900
+    const int current_min_pwm = PWM_MIN;     // 1100
 
-    if (std::abs(value) <= JOYSTICK_DEADZONE) {
-        pulse_width = PWM_NEUTRAL; // Use neutral for deadzone if ESC requires it, else PWM_MIN
-    } else if (value > JOYSTICK_DEADZONE) {
-        // Forward thrust (maps DEADZONE to 32767 -> PWM_NEUTRAL to PWM_BOOST_MAX)
-        pulse_width = static_cast<int>(map_value(value, JOYSTICK_DEADZONE, 32767, PWM_NEUTRAL, current_max_pwm));
-    } else { // value < -JOYSTICK_DEADZONE
-        // Reverse thrust (maps -32768 to -DEADZONE -> PWM_MIN to PWM_NEUTRAL)
+    if (std::abs(value) <= JOYSTICK_DEADZONE) { // 6500 以下の場合
+        // デッドゾーン内: 停止または最小出力 (ESCの仕様に依存)
+        // ここでは PWM_MIN (1100) を出力します
+        pulse_width = PWM_MIN;
+    } else if (value > JOYSTICK_DEADZONE) { // 6500 より大きい場合 (前進)
+        // 前進推力: 入力 6500 ~ 32767 を 出力 1100 ~ 1900 にマッピング
+        pulse_width = static_cast<int>(map_value(value, JOYSTICK_DEADZONE, 32767, PWM_MIN, current_max_pwm));
+                                                                            // ^^^^^^^ 出力開始値を PWM_MIN に変更
+    } else { // value < -JOYSTICK_DEADZONE (後退)
+        // 後退推力: 入力 -32768 ~ -6500 を 出力 1100 ~ 1500 にマッピング (現在のロジック)
+        // 注意: ESCが双方向でない場合、この部分は不要または変更が必要かもしれません。
+        //       ESCが 1100 を停止、それ以上を前進とするタイプなら、後退は実装できません。
+        //       もしESCが 1100(後退最大)-1500(停止)-1900(前進最大) のようなタイプなら、
+        //       ここのマッピングも変更が必要です。
         pulse_width = static_cast<int>(map_value(value, -32768, -JOYSTICK_DEADZONE, current_min_pwm, PWM_NEUTRAL));
     }
+    // 最終的なクランプ処理は set_thruster_pwm 関数内で行われます
     return pulse_width;
-    // Clamping will be done by set_thruster_pwm
 }
+
 
 
 // メインの更新関数
