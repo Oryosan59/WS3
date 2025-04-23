@@ -88,35 +88,180 @@ make -f Makefile.mk clean
 
 ---
 
-### 🚀 1. Raspberry Pi OS の準備
+### 🧱 1. Raspberry Pi Imager のインストール
 
-#### 1.1 OS イメージのダウンロード  
-推奨イメージ（Lite版）:
+#### 1.1 Raspberry Pi Imager の入手
+- [公式サイト](https://www.raspberrypi.com/software/)から、お使いのOSに対応するバージョンをダウンロード＆インストールしてください。
 
-| アーキテクチャ | ファイル名 | サイズ |
-|----------------|------------|--------|
-| 32-bit (armhf) | `2023-02-21-raspios-bullseye-armhf-lite.img.xz` | 約362MB |
-| 64-bit (arm64) | `2023-02-21-raspios-bullseye-arm64-lite.img.xz` | 約307MB |
+---
 
-🔗 [Raspberry Pi OS公式サイト](https://www.raspberrypi.com/software/operating-systems/)
-🔗 [2023-02-21-raspios-bullseye-armhf-lite.img.xz](https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2023-02-22/)
-🔗 [2023-02-21-raspios-bullseye-arm64-lite.img.xz](https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-02-22/)
+### 💿 2. Raspberry Pi OS イメージの準備
 
-#### 1.2 Raspberry Pi Imager で microSD にフラッシュ  
-- SSH有効化  
-- ホスト名、ユーザー名、Wi-Fi設定をプリセット  
-- 固定IPの設定例:
-  ```bash
-  sudo nano /etc/dhcpcd.conf
-  ```
+#### 2.1 OSイメージの選定（Lite推奨）
+以下のいずれかを選びます。
 
-最下に記入
-  ```conf
-  interface eth0
-  static ip_address=192.168.1.100/24
-  ```
+| アーキテクチャ | ファイル名 | サイズ | ダウンロードリンク |
+|----------------|------------|--------|------------------|
+| 32-bit (armhf) | 2023-02-21-raspios-bullseye-armhf-lite.img.xz | 約362MB | [DLリンク](https://downloads.raspberrypi.com/raspios_lite_armhf/images/raspios_lite_armhf-2023-02-22/) |
+| 64-bit (arm64) | 2023-02-21-raspios-bullseye-arm64-lite.img.xz | 約307MB | [DLリンク](https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2023-02-22/) |
 
-#### 1.3 必要なツールのインストール
+![Image](https://github.com/user-attachments/assets/a0fb8328-bb0a-4a6b-b84a-f3993df9bd4e)
+一番上を選択します
+
+### 2.2 Raspberry Pi Imager で microSD にフラッシュ
+1. Imager を起動し、上記でダウンロードしたイメージを選択
+
+    ![Image](https://github.com/user-attachments/assets/c4475b9c-18ef-4990-a089-462760b79c10)
+    ![Image](https://github.com/user-attachments/assets/0fea632b-a403-4720-b0ea-051ba5aef1e5)
+
+2. 設定を編集するをクリックして以下を設定：
+   - ホスト名、ユーザー名、パスワードの設定
+   - Wi-Fi設定（SSIDとパスワード入力。**ステルスSSIDのチェックは外す**）
+   - ロケール：
+     - タイムゾーン：Asia/Tokyo
+     - キーボードレイアウト：jp
+   - サービス：SSH を有効化
+
+
+    ![Image](https://github.com/user-attachments/assets/b457e316-caff-48e7-82dc-f9ec5a33a81a)
+    ![Image](https://github.com/user-attachments/assets/92d853b0-1c52-42b7-bb09-f8303e310996)
+
+3. microSD に書き込み開始
+
+---
+
+## 🌐 3. ネットワーク設定
+MicroHDMIとキーボードをラズパイに接続し、操作します
+
+
+### 3.1 固定IP設定（有線LAN）
+```bash
+sudo nano /etc/dhcpcd.conf
+```
+ファイル最下部に追記：
+```conf
+interface eth0
+static ip_address=192.168.1.100/24
+```
+記入が終わったら、終了する: `Ctrl + X`（「Exit」）
+「Save modified buffer?」と表示されるので、`Y`（Yes）を押して保存します
+
+---
+
+## 🖥️ 4. Tera Term / ターミナルでの有線SSH接続
+
+### ⚙️ 前提条件
+- Raspberry PiとPCをLANケーブルで接続（スイッチングハブ経由または直接接続）
+- Raspberry Piに固定IPを設定済み（例: `192.168.1.100`）
+
+---
+
+### 🪟 4.1 Windows：Tera Term で接続する
+
+#### 4.1.1 Tera Term のインストール
+1. 公式サイトから Tera Term をダウンロード:  
+   [https://ttssh2.osdn.jp/](https://ttssh2.osdn.jp/)
+2. インストーラーを実行してインストール
+
+#### 4.1.2 接続手順
+1. Tera Term を起動
+2. 「ホスト」欄に Raspberry Pi のIPアドレス（例: `192.168.1.100`）を入力
+3. 「SSH」を選択し、OKをクリック
+4. ユーザー名とパスワードを入力してログイン（例: `pi / raspberry`）
+
+✅ 接続に成功すると、Raspberry Pi のシェル画面が表示されます。
+
+---
+
+### 🍎 4.2 macOS：ターミナルでSSH接続する
+
+#### 4.2.1 標準ターミナルを使用
+1. 「ターミナル」アプリを開く（`Command + Space` → "terminal" と入力）
+2. 以下のコマンドで接続：
+
+```bash
+ssh pi@192.168.1.100
+```
+
+3. 最初の接続時に表示される fingerprint の確認メッセージで「yes」と入力
+4. パスワードを入力（表示されないが打ててます）
+
+✅ ログインに成功すると、ターミナルに `pi@raspberrypi` のプロンプトが表示されます。
+
+---
+
+### 💡 補足：接続できないときのチェックポイント
+- Raspberry Pi の電源が入っているか
+- LANケーブルが確実に接続されているか
+- Raspberry Pi 側のIPアドレスが正しいか（`ifconfig` または `ip a` で確認可能）
+- ファイアウォールの影響がないか
+
+---
+
+## 🌐 5. Windows / macOS での有線LAN固定IP設定ガイド
+
+Raspberry PiとPCをLANケーブルで**直接接続**または**ハブ経由でローカル接続**する場合、お互いのIPアドレスを固定にする必要があります
+ここでは、**Raspberry PiのIPを `192.168.1.100` に固定**する前提で、**PC側を `192.168.1.10`** に設定する方法を解説します
+
+---
+
+### 🪟 5.1 Windowsでの設定方法
+
+#### 📌 手順
+1. **[設定] → [ネットワークとインターネット] → [アダプターのオプションを変更する]** を開く
+2. 有線LAN（例:「イーサネット」）を**右クリック → [プロパティ]**
+3. 「インターネットプロトコル バージョン4 (TCP/IPv4)」を選択し**[プロパティ]**
+4. 以下のように設定：
+
+| 項目 | 設定内容 |
+|------|----------|
+| IPアドレス | `192.168.1.10` |
+| サブネットマスク | `255.255.255.0` |
+| デフォルトゲートウェイ | （空白でOK） |
+| DNS | （空白または `8.8.8.8`） |
+
+5. [OK] をクリックして設定を保存
+
+✅ 接続後、Tera Termで `192.168.1.100` にSSH可能になるはずです
+
+---
+
+### 🍎 5.2 macOSでの設定方法
+
+#### 📌 手順
+1. **[システム設定] → [ネットワーク]** を開く
+2. 左メニューから「有線Ethernet」または「USB LANアダプタ」を選択
+3. 「詳細」→ 「TCP/IP」タブを開く
+4. 「IPv4の設定」→「手入力（Manually）」を選択
+5. 以下を入力：
+
+| 項目 | 設定内容 |
+|------|----------|
+| IPアドレス | `192.168.1.10` |
+| サブネットマスク | `255.255.255.0` |
+| ルーター | 空白（または `192.168.1.1`） |
+
+6. [OK] → [適用] をクリック
+
+✅ ターミナルで `ssh pi@192.168.1.100` で接続可能になります
+
+---
+
+### 🧪 接続テスト
+
+PCから以下のように Raspberry Pi に ping を送って確認します：
+
+```bash
+ping 192.168.1.100
+```
+
+`応答があります` や `bytes from 192.168.1.100` のような表示が出れば、接続成功です！
+
+---
+
+
+## 🛠️ 6. 必要なツールのインストール
+接続後、ターミナルで実行します
 
 ```bash
 sudo apt update
@@ -125,10 +270,10 @@ sudo apt install git i2c-tools
 
 ---
 
-### 🧭 2. Navigator ハードウェアのセットアップ
-
-#### 2.1 オーバーレイ設定スクリプトの実行
-
+## 🧭 7. Navigator ハードウェアのセットアップ
+ [BlueRobotics Navigator-lib](https://github.com/bluerobotics/navigator-lib)   のバインディング構築方法と、Raspberry Pi 上で Navigator Flight Controller を使うための準備手順を紹介します
+ 
+### 7.1 オーバーレイ設定スクリプトの実行
 ```bash
 sudo su -c 'curl -fsSL https://raw.githubusercontent.com/bluerobotics/blueos-docker/master/install/boards/configure_board.sh | bash'
 sudo reboot
@@ -136,33 +281,31 @@ sudo reboot
 
 ---
 
-### 🧪 3. Navigator-lib のビルドと実行
+## 🧪 8. Navigator-lib のビルドと実行
 
-#### 3.1 必要パッケージのインストール
-
+### 8.1 依存パッケージのインストール
 ```bash
 sudo apt install cmake git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
 ```
 
-#### 3.2 ライブラリのクローンと C++ バインディングのビルド
-
+### 8.2 ライブラリの取得とビルド
 ```bash
 git clone https://github.com/bluerobotics/navigator-lib.git
 cd navigator-lib/examples/cpp
 cmake -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build --config Debug --parallel
 ```
+> **備考**: C++バインディングのビルド結果は `navigator-lib/target/debug` に配置されるため、`Makefile` で `NAVIGATOR_LIB_PATH` にこのパスを指定して利用します。
 
-#### 3.3 サンプル実行ファイル
-
+### 8.3 サンプルの実行
 ```bash
 ./build/simple
 ./build/rainbow
 ```
 
-> **備考**: C++バインディングのビルド結果は `navigator-lib/target/debug` に配置されるため、`Makefile` で `NAVIGATOR_LIB_PATH` にこのパスを指定して利用します。
+以上で、Raspberry Pi 4B + Navigator-lib の準備が完了です！💡
 
 ---
 
