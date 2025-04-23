@@ -36,7 +36,10 @@ WS3/
 
 ### 🔧 前提条件
 - g++ (C++11以降)
-- [BlueRobotics Navigator-lib](https://github.com/bluerobotics/navigator-lib) がビルド済みであること  
+```bash
+sudo apt install build-essential
+```
+- [BlueRobotics Navigator-lib](https://github.com/bluerobotics/navigator-lib) がビルド済みであること（オマケから確認）  
   （デフォルトでは `~/navigator-lib/target/debug` にインストールされている想定）
 
 > **注:**  
@@ -56,6 +59,8 @@ WS3/
 
 ### 🔄 ビルド手順
 ```bash
+git clone https://github.com/Oryosan59/WS3
+cd WS3
 make -f Makefile.mk
 ```
 
