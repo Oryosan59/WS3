@@ -11,10 +11,10 @@ static float map_value(float x, float in_min, float in_max, float out_min, float
 {
     if (in_max == in_min)
     {
-        // Avoid division by zero
+        // ゼロ除算を回避
         return out_min;
     }
-    // Clamp input value to the specified range before mapping
+    // マッピング前に入力値を指定範囲内にクランプ
     x = std::max(in_min, std::min(x, in_max));
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
@@ -22,17 +22,17 @@ static float map_value(float x, float in_min, float in_max, float out_min, float
 // PWM値を設定するヘルパー (範囲チェックとデューティサイクル計算を含む)
 static void set_thruster_pwm(int channel, int pulse_width_us)
 {
-    // Clamp PWM value to ensure it's within valid operational range
-    // Note: Using PWM_BOOST_MAX as the upper limit for clamping
+    // PWM値が有効な動作範囲内にあることを保証するためにクランプ
+    // 注意: クランプの上限として PWM_BOOST_MAX を使用
     int clamped_pwm = std::max(PWM_MIN, std::min(pulse_width_us, PWM_BOOST_MAX));
 
-    // Calculate duty cycle
+    // デューティサイクルを計算
     float duty_cycle = static_cast<float>(clamped_pwm) / PWM_PERIOD_US;
 
-    // Set the PWM duty cycle for the specified channel
+    // 指定されたチャンネルのPWMデューティサイクルを設定
     set_pwm_channel_duty_cycle(channel, duty_cycle);
 
-    // Debug print (optional)
+    // デバッグ出力 (オプション)
     // printf("Ch%d: Set PWM = %d (Clamped: %d), Duty = %.4f\n", channel, pulse_width_us, clamped_pwm, duty_cycle);
 }
 
@@ -44,22 +44,22 @@ bool thruster_init()
     set_pwm_enable(true);
     printf("Setting PWM frequency to %.1f Hz\n", PWM_FREQUENCY);
     set_pwm_freq_hz(PWM_FREQUENCY);
-    // Initialize all thrusters to neutral/min?
+    // すべてのスラスターをニュートラル/最小値に初期化？
     for (int i = 0; i < NUM_THRUSTERS; ++i)
     {
-        set_thruster_pwm(i, PWM_MIN); // Or PWM_NEUTRAL if applicable
+        set_thruster_pwm(i, PWM_MIN); // または適用可能であれば PWM_NEUTRAL
     }
     printf("Thrusters initialized to PWM %d.\n", PWM_MIN);
-    return true; // Assuming init functions don't return status easily
+    return true; // 初期化関数が簡単にステータスを返さないと仮定
 }
 
 void thruster_disable()
 {
     printf("Disabling PWM\n");
-    // Optionally set all thrusters to neutral/min before disabling
+    // 無効にする前に、オプションですべてのスラスターをニュートラル/最小値に設定
     for (int i = 0; i < NUM_THRUSTERS; ++i)
     {
-        set_thruster_pwm(i, PWM_MIN); // Or PWM_NEUTRAL
+        set_thruster_pwm(i, PWM_MIN); // または PWM_NEUTRAL
     }
     set_pwm_enable(false);
 }
@@ -68,7 +68,7 @@ void thruster_disable()
 static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
 {
     // Initialize output PWM array to neutral/min
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i) // 出力PWM配列をニュートラル/最小値に初期化
         pwm_out[i] = PWM_MIN;
 
     bool lx_active = std::abs(data.leftThumbX) > JOYSTICK_DEADZONE;
@@ -77,35 +77,35 @@ static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
     int pwm_lx[4] = {PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN};
     int pwm_rx[4] = {PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN};
 
-    // Lx (Rotation) contribution (maps to PWM_MIN - PWM_NORMAL_MAX)
+    // Lx (回転) の寄与 (PWM_MIN - PWM_NORMAL_MAX にマッピング)
     if (data.leftThumbX < -JOYSTICK_DEADZONE)
-    { // Turn Left
+    { // 左旋回
         int val = static_cast<int>(map_value(data.leftThumbX, -32768, -JOYSTICK_DEADZONE, PWM_NORMAL_MAX, PWM_MIN));
-        pwm_lx[1] = val; // Ch 1 (Front Right)
-        pwm_lx[2] = val; // Ch 2 (Rear Left)
+        pwm_lx[1] = val; // Ch 1 (前右)
+        pwm_lx[2] = val; // Ch 2 (後左)
     }
     else if (data.leftThumbX > JOYSTICK_DEADZONE)
-    { // Turn Right
+    { // 右旋回
         int val = static_cast<int>(map_value(data.leftThumbX, JOYSTICK_DEADZONE, 32767, PWM_MIN, PWM_NORMAL_MAX));
-        pwm_lx[0] = val; // Ch 0 (Front Left)
-        pwm_lx[3] = val; // Ch 3 (Rear Right)
+        pwm_lx[0] = val; // Ch 0 (前左)
+        pwm_lx[3] = val; // Ch 3 (後右)
     }
 
-    // Rx (Strafe) contribution (maps to PWM_MIN - PWM_NORMAL_MAX)
+    // Rx (平行移動) の寄与 (PWM_MIN - PWM_NORMAL_MAX にマッピング)
     if (data.rightThumbX < -JOYSTICK_DEADZONE)
-    { // Strafe Left
+    { // 左平行移動
         int val = static_cast<int>(map_value(data.rightThumbX, -32768, -JOYSTICK_DEADZONE, PWM_NORMAL_MAX, PWM_MIN));
-        pwm_rx[1] = val; // Ch 1 (Front Right) - Assuming X config where FR/RL push left
-        pwm_rx[3] = val; // Ch 3 (Rear Right)  - Assuming X config where FR/RL push left
+        pwm_rx[1] = val; // Ch 1 (前右) - FR/RLが左に押すX構成と仮定
+        pwm_rx[3] = val; // Ch 3 (後右)  - FR/RLが左に押すX構成と仮定
     }
     else if (data.rightThumbX > JOYSTICK_DEADZONE)
-    { // Strafe Right
+    { // 右平行移動
         int val = static_cast<int>(map_value(data.rightThumbX, JOYSTICK_DEADZONE, 32767, PWM_MIN, PWM_NORMAL_MAX));
-        pwm_rx[0] = val; // Ch 0 (Front Left) - Assuming X config where FL/RR push right
-        pwm_rx[2] = val; // Ch 2 (Rear Left)  - Assuming X config where FL/RR push right
+        pwm_rx[0] = val; // Ch 0 (前左) - FL/RRが右に押すX構成と仮定
+        pwm_rx[2] = val; // Ch 2 (後左)  - FL/RRが右に押すX構成と仮定
     }
 
-    // Combine contributions and apply boost if both sticks are active
+    // 両方のスティックがアクティブな場合、寄与を結合してブーストを適用
     if (lx_active && rx_active)
     {
         const int boost_range = PWM_BOOST_MAX - PWM_NORMAL_MAX;
@@ -114,30 +114,30 @@ static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
         int weaker_input_abs = std::min(abs_lx, abs_rx);
         int boost_add = static_cast<int>(map_value(weaker_input_abs, JOYSTICK_DEADZONE, 32768, 0, boost_range));
 
-        // Determine which channel gets boosted based on stick directions
+        // スティックの方向に基づいてブーストされるチャンネルを決定
         if (data.leftThumbX < 0 && data.rightThumbX < 0)
-        { // Turn L + Strafe L -> Boost Ch 1 (FR)
+        { // 左旋回 + 左平行移動 -> Ch 1 (FR) をブースト
             pwm_out[0] = std::max(pwm_lx[0], pwm_rx[0]);
             pwm_out[1] = std::max(pwm_lx[1], pwm_rx[1]) + boost_add;
             pwm_out[2] = std::max(pwm_lx[2], pwm_rx[2]);
             pwm_out[3] = std::max(pwm_lx[3], pwm_rx[3]);
         }
         else if (data.leftThumbX < 0 && data.rightThumbX > 0)
-        { // Turn L + Strafe R -> Boost Ch 2 (RL)
+        { // 左旋回 + 右平行移動 -> Ch 2 (RL) をブースト
             pwm_out[0] = std::max(pwm_lx[0], pwm_rx[0]);
             pwm_out[1] = std::max(pwm_lx[1], pwm_rx[1]);
             pwm_out[2] = std::max(pwm_lx[2], pwm_rx[2]) + boost_add;
             pwm_out[3] = std::max(pwm_lx[3], pwm_rx[3]);
         }
         else if (data.leftThumbX > 0 && data.rightThumbX < 0)
-        { // Turn R + Strafe L -> Boost Ch 3 (RR)
+        { // 右旋回 + 左平行移動 -> Ch 3 (RR) をブースト
             pwm_out[0] = std::max(pwm_lx[0], pwm_rx[0]);
             pwm_out[1] = std::max(pwm_lx[1], pwm_rx[1]);
             pwm_out[2] = std::max(pwm_lx[2], pwm_rx[2]);
             pwm_out[3] = std::max(pwm_lx[3], pwm_rx[3]) + boost_add;
         }
         else
-        { // Turn R + Strafe R -> Boost Ch 0 (FL)
+        { // 右旋回 + 右平行移動 -> Ch 0 (FL) をブースト
             pwm_out[0] = std::max(pwm_lx[0], pwm_rx[0]) + boost_add;
             pwm_out[1] = std::max(pwm_lx[1], pwm_rx[1]);
             pwm_out[2] = std::max(pwm_lx[2], pwm_rx[2]);
@@ -146,15 +146,14 @@ static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
     }
     else
     {
-        // Only one or no stick active: Simple combination (max)
+        // 一方のスティックのみアクティブ、またはどちらも非アクティブ: 単純な組み合わせ (最大値)
         for (int i = 0; i < 4; ++i)
         {
             pwm_out[i] = std::max(pwm_lx[i], pwm_rx[i]);
         }
     }
 
-    // Final clamping is done in set_thruster_pwm
-}
+} // 最終的なクランプは set_thruster_pwm で行われる
 
 // 前進/後退スラスター制御ロジック
 static int calculate_forward_reverse_pwm(int value)
@@ -185,15 +184,15 @@ void thruster_update(const GamepadData &data)
     int horizontal_pwm[4];
     update_horizontal_thrusters(data, horizontal_pwm);
 
-    // Assuming channel 4 is for forward/reverse based on original main()
+    // 元の main() に基づき、チャンネル4が前進/後退用と仮定
     int forward_pwm = calculate_forward_reverse_pwm(data.rightThumbY);
 
     // --- PWM信号をスラスターに送信 ---
     printf("--- Thruster PWM ---\n");
     for (int i = 0; i < 4; ++i)
     {
-        set_thruster_pwm(i, horizontal_pwm[i]);
-        printf("Ch%d: Hori PWM = %d\n", i, horizontal_pwm[i]); // Debug
+        set_thruster_pwm(i, horizontal_pwm[i]);                // 水平スラスターPWM設定
+        printf("Ch%d: Hori PWM = %d\n", i, horizontal_pwm[i]); // デバッグ
     }
     set_thruster_pwm(4, forward_pwm);
     set_thruster_pwm(5, forward_pwm);

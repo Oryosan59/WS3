@@ -1,84 +1,101 @@
-#include "network.h"
-#include "gamepad.h"
-#include "thruster_control.h"
-#include "sensor_data.h"
-#include "bindings.h" // For init()
+// --- インクルード ---
+#include "network.h"          // ネットワーク通信関連 (UDP送受信)
+#include "gamepad.h"          // ゲームパッドデータ構造体とパース関数
+#include "thruster_control.h" // スラスター制御関連
+#include "sensor_data.h"      // センサーデータ読み取り・フォーマット関連
+#include "bindings.h"         // ハードウェア初期化関数 (init) など
 
-#include <iostream>
-#include <unistd.h> // For usleep
-#include <string.h> // For strlen
+#include <iostream> // 標準入出力 (std::cout, std::cerr)
+#include <unistd.h> // POSIX API (usleep)
+#include <string.h> // 文字列操作 (strlen)
 
-int main() {
+// --- メイン関数 ---
+int main()
+{
     printf("Navigator C++ Control Application\n");
 
     // --- 初期化 ---
     printf("Initiating navigator module.\n");
-    init(); // Initialize navigator hardware library
+    init(); // Navigator ハードウェアライブラリの初期化 (bindings.h 経由)
 
+    // ネットワークコンテキストの初期化
     NetworkContext net_ctx;
-    if (!network_init(&net_ctx, DEFAULT_RECV_PORT, DEFAULT_SEND_PORT)) {
+    if (!network_init(&net_ctx, DEFAULT_RECV_PORT, DEFAULT_SEND_PORT))
+    {
         std::cerr << "ネットワーク初期化失敗。終了します。" << std::endl;
         return -1;
     }
 
-    if (!thruster_init()) {
+    // スラスター制御の初期化
+    if (!thruster_init())
+    {
         std::cerr << "スラスター初期化失敗。終了します。" << std::endl;
-        network_close(&net_ctx);
+        network_close(&net_ctx); // ネットワークリソースを解放
         return -1;
     }
 
     // --- メインループ ---
-    GamepadData latest_gamepad_data; // Keep the last known state
-    char recv_buffer[NET_BUFFER_SIZE];
-    char sensor_buffer[SENSOR_BUFFER_SIZE];
-    bool running = true;
+    GamepadData latest_gamepad_data;        // 最後に受信した有効なゲームパッドデータを保持
+    char recv_buffer[NET_BUFFER_SIZE];      // UDP受信バッファ
+    char sensor_buffer[SENSOR_BUFFER_SIZE]; // センサーデータ送信用文字列バッファ
+    bool running = true;                    // メインループの実行フラグ
 
     std::cout << "メインループ開始。Startボタンで終了。" << std::endl;
 
-    while (running) {
+    // running フラグが true の間、ループを継続
+    while (running)
+    {
         // 1. ゲームパッドデータ受信
         ssize_t recv_len = network_receive(&net_ctx, recv_buffer, sizeof(recv_buffer));
 
-        if (recv_len > 0) {
+        if (recv_len > 0)
+        {
             // データ受信成功、パースして最新状態を更新
             std::string received_str(recv_buffer);
-            latest_gamepad_data = parseGamepadData(received_str);
+            latest_gamepad_data = parseGamepadData(received_str); // 受信文字列をパース
             // std::cout << "受信: " << received_str << std::endl; // Debug
-        } else if (recv_len < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+        }
+        else if (recv_len < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+        {
             // 受信エラー (データなし以外)
             std::cerr << "致命的な受信エラー。ループを継続します..." << std::endl;
-            // Consider adding logic to stop or reset if errors persist
+            // エラーが頻発する場合、停止またはリセットするロジックの追加を検討
         }
-        // recv_len == 0 or EAGAIN/EWOULDBLOCK: データなし。latest_gamepad_data をそのまま使う。
-
+        // recv_len == 0 または EAGAIN/EWOULDBLOCK の場合:
+        // データがないことを示す。この場合、前回受信した latest_gamepad_data をそのまま使用する。
         // 2. スラスター制御更新
         // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
         thruster_update(latest_gamepad_data);
 
         // 3. センサーデータ読み取り＆フォーマット
-        if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer))) {
+        if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer)))
+        {
             // 4. センサーデータ送信 (送信先が分かっている場合のみ)
-            if (net_ctx.client_addr_known) {
-                network_send(&net_ctx, sensor_buffer, strlen(sensor_buffer));
+            if (net_ctx.client_addr_known)
+            {
+                network_send(&net_ctx, sensor_buffer, strlen(sensor_buffer)); // フォーマットされたセンサーデータを送信
             }
-        } else {
+        }
+        else
+        {
             std::cerr << "センサーデータの読み取り/フォーマットに失敗。" << std::endl;
         }
 
-
         // 5. 終了条件チェック
-        if (latest_gamepad_data.buttons & GamepadButton::Start) {
+        // ゲームパッドの Start ボタンが押されたらループを終了
+        if (latest_gamepad_data.buttons & GamepadButton::Start)
+        {
             std::cout << "Startボタン検出。終了します。" << std::endl;
             running = false;
         }
 
         // 6. ループ待機 (CPU負荷軽減とループ頻度調整)
-        usleep(10000); // 10ms待機 (~100Hz)
+        usleep(10000); // 10ミリ秒待機 (約100Hzのループ周波数)
     }
 
     // --- クリーンアップ ---
-    thruster_disable();
-    network_close(&net_ctx);
+    thruster_disable();      // スラスターへのPWM出力を停止
+    network_close(&net_ctx); // ネットワークソケットをクローズ
 
     std::cout << "プログラム終了。" << std::endl;
     return 0;
