@@ -4,6 +4,7 @@
 #include "thruster_control.h" // スラスター制御関連
 #include "sensor_data.h"      // センサーデータ読み取り・フォーマット関連
 #include "bindings.h"         // ハードウェア初期化関数 (init) など
+#include "gstPipeline.h"      // GStreamerパイプライン起動用
 
 #include <iostream> // 標準入出力 (std::cout, std::cerr)
 #include <unistd.h> // POSIX API (usleep)
@@ -32,6 +33,13 @@ int main()
         std::cerr << "スラスター初期化失敗。終了します。" << std::endl;
         network_close(&net_ctx); // ネットワークリソースを解放
         return -1;
+    }
+
+    // GStreamerパイプラインの起動
+    if (!start_gstreamer_pipelines())
+    {
+        std::cerr << "GStreamerパイプラインの起動に失敗しました。処理を続行します..." << std::endl;
+        // パイプライン起動失敗は致命的ではないかもしれないので、ここでは続行
     }
 
     // --- メインループ ---
