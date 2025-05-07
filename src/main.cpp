@@ -72,12 +72,12 @@ int main()
         // recv_len == 0 または EAGAIN/EWOULDBLOCK の場合:
         // データがないことを示す。この場合、前回受信した latest_gamepad_data をそのまま使用する。
         // 2. スラスター制御更新
-        // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        thruster_update(latest_gamepad_data);
-
-        // 3. センサーデータ読み取り＆フォーマット
         if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer)))
         {
+            // ★★★ センサーデータのログ表示を追加 ★★★
+            // thruster_update の直前にログを出すことで、制御入力とセンサー状態を関連付けやすくする
+            std::cout << "[SENSOR LOG] " << sensor_buffer << std::endl;
+
             // 4. センサーデータ送信 (送信先が分かっている場合のみ)
             if (net_ctx.client_addr_known)
             {
@@ -88,6 +88,10 @@ int main()
         {
             std::cerr << "センサーデータの読み取り/フォーマットに失敗。" << std::endl;
         }
+
+        // スラスター制御更新 (センサーデータ読み取り後、ログ表示後に実行)
+        // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
+        thruster_update(latest_gamepad_data);
 
         // 5. 終了条件チェック
         // ゲームパッドの Start ボタンが押されたらループを終了
