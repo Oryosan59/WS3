@@ -106,6 +106,7 @@ int main()
     }
 
     // --- クリーンアップ ---
+    stop_gstreamer_pipelines(); // GStreamerパイプラインを停止
     thruster_disable();      // スラスターへのPWM出力を停止
     network_close(&net_ctx); // ネットワークソケットをクローズ
 

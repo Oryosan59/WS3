@@ -7,4 +7,7 @@
  */
 bool start_gstreamer_pipelines();
 
+// GStreamerパイプラインを停止する関数
+void stop_gstreamer_pipelines();
+
 #endif // GST_PIPELINE_H
