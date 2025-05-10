@@ -43,10 +43,11 @@ int main()
     }
 
     // --- メインループ ---
-    GamepadData latest_gamepad_data;        // 最後に受信した有効なゲームパッドデータを保持
-    char recv_buffer[NET_BUFFER_SIZE];      // UDP受信バッファ
-    char sensor_buffer[SENSOR_BUFFER_SIZE]; // センサーデータ送信用文字列バッファ
-    bool running = true;                    // メインループの実行フラグ
+    GamepadData latest_gamepad_data;                 // 最後に受信した有効なゲームパッドデータを保持
+    char recv_buffer[NET_BUFFER_SIZE];               // UDP受信バッファ
+    AxisData current_gyro_data = {0.0f, 0.0f, 0.0f}; // 最新のジャイロデータを保持
+    char sensor_buffer[SENSOR_BUFFER_SIZE];          // センサーデータ送信用文字列バッファ
+    bool running = true;                             // メインループの実行フラグ
 
     std::cout << "メインループ開始。Startボタンで終了。" << std::endl;
 
@@ -72,11 +73,13 @@ int main()
         // recv_len == 0 または EAGAIN/EWOULDBLOCK の場合:
         // データがないことを示す。この場合、前回受信した latest_gamepad_data をそのまま使用する。
         // 2. スラスター制御更新
+        //    ジャイロデータもここで読み取って渡す (センサーデータ送信とは別にリアルタイム性を重視)
+        current_gyro_data = read_gyro(); // ジャイロデータを読み取る
         // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        thruster_update(latest_gamepad_data);
+        thruster_update(latest_gamepad_data, current_gyro_data);
 
         // 3. センサーデータ読み取り＆フォーマット
-        if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer)))
+        if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer))) // この関数内で read_gyro() も呼ばれるが、スラスター制御用には別途取得
         {
             // 4. センサーデータ送信 (送信先が分かっている場合のみ)
             if (net_ctx.client_addr_known)

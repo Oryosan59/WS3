@@ -65,7 +65,7 @@ void thruster_disable()
 }
 
 // 水平スラスター制御ロジック (updateThrustersFromSticksの内容を移植・調整)
-static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
+static void update_horizontal_thrusters(const GamepadData &data, const AxisData &gyro_data, int pwm_out[4])
 {
     // Initialize output PWM array to neutral/min
     for (int i = 0; i < 4; ++i) // 出力PWM配列をニュートラル/最小値に初期化
@@ -153,6 +153,55 @@ static void update_horizontal_thrusters(const GamepadData &data, int pwm_out[4])
         }
     }
 
+    // --- ジャイロによるロール安定化補正 (エルロン操作時) ---
+    // rx_active は data.rightThumbX (エルロン操作) がデッドゾーン外であるかを示すフラグ
+    if (rx_active) // エルロン操作中のみ安定化制御を行う
+    {
+        // --- ロール補正 ---
+        // 仮定: gyro_data.x がロール軸の角速度 (右へのロールが正)
+        //       単位が deg/s の場合を想定。rad/s ならKp値を調整。
+        float roll_rate = gyro_data.x;
+
+        // P制御ゲイン (要調整: この値は非常に小さい値から試してください)
+        const float Kp_roll = 0.2f; // ★★★ 要調整 ★★★
+
+        // 補正値の計算
+        // roll_rate > 0 (右にロール) の場合、左回転の力を加えたい。
+        // 左回転は Ch1(前右)とCh2(後左)を強く、Ch0(前左)とCh3(後右)を弱くする。
+        // correction_pwm_roll が正の時に左回転を強める。
+        int correction_pwm_roll = static_cast<int>(roll_rate * Kp_roll);
+
+        // pwm_out にロール補正を適用 (回転スラスターのバランスを調整)
+        // Ch0 (前左): 減らす (左回転のため)
+        // Ch1 (前右): 増やす (左回転のため)
+        // Ch2 (後左): 増やす (左回転のため)
+        // Ch3 (後右): 減らす (左回転のため)
+        pwm_out[0] -= correction_pwm_roll;
+        pwm_out[1] += correction_pwm_roll;
+        pwm_out[2] += correction_pwm_roll;
+        pwm_out[3] -= correction_pwm_roll;
+
+        // --- ヨー補正 (Z軸回転の調整) ---
+        // 仮定: gyro_data.z がヨー軸の角速度 (右へのヨーイングが正)
+        //       単位が deg/s の場合を想定。rad/s ならKp値を調整。
+        //       センサーのZ軸が機体のヨー軸と一致しているか、符号が正しいか確認してください。
+        float yaw_rate = gyro_data.z;
+
+        // P制御ゲイン (ヨー用 - 要調整)
+        const float Kp_yaw = 0.15f; // ★★★ 要調整 ★★★ (ロール用とは別に調整)
+
+        // ヨー補正値の計算
+        // yaw_rate > 0 (右にヨー) の場合、左ヨーの力を加えたい。
+        // 左ヨーは Ch1(前右)とCh2(後左)を強く、Ch0(前左)とCh3(後右)を弱くする (回転制御と同じ)。
+        // correction_pwm_yaw が正の時に左ヨーを強める。
+        int correction_pwm_yaw = static_cast<int>(yaw_rate * Kp_yaw);
+
+        // pwm_out にヨー補正を適用 (回転スラスターのバランスを調整)
+        pwm_out[0] -= correction_pwm_yaw; // 左ヨーを助ける (Ch0を弱める)
+        pwm_out[1] += correction_pwm_yaw; // 左ヨーを助ける (Ch1を強める)
+        pwm_out[2] += correction_pwm_yaw; // 左ヨーを助ける (Ch2を強める)
+        pwm_out[3] -= correction_pwm_yaw; // 左ヨーを助ける (Ch3を弱める)
+    }
 } // 最終的なクランプは set_thruster_pwm で行われる
 
 // 前進/後退スラスター制御ロジック
@@ -179,13 +228,13 @@ static int calculate_forward_reverse_pwm(int value)
 }
 
 // メインの更新関数
-void thruster_update(const GamepadData &data)
+void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
 {
     int horizontal_pwm[4];
-    update_horizontal_thrusters(data, horizontal_pwm);
+    update_horizontal_thrusters(gamepad_data, gyro_data, horizontal_pwm);
 
     // 元の main() に基づき、チャンネル4が前進/後退用と仮定
-    int forward_pwm = calculate_forward_reverse_pwm(data.rightThumbY);
+    int forward_pwm = calculate_forward_reverse_pwm(gamepad_data.rightThumbY);
 
     // --- PWM信号をスラスターに送信 ---
     printf("--- Thruster PWM ---\n");

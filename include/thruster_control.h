@@ -1,7 +1,8 @@
 #ifndef THRUSTER_CONTROL_H // インクルードガード: ヘッダーファイルが複数回インクルードされるのを防ぐ
 #define THRUSTER_CONTROL_H // インクルードガード
 
-#include "gamepad.h" // GamepadData 構造体の定義が必要なためインクルード
+#include "gamepad.h"  // GamepadData 構造体の定義が必要なためインクルード
+#include "bindings.h" // AxisData 構造体を使用するため (read_gyro() の戻り値型)
 
 // --- 定数定義 ---
 #define PWM_MIN 1100                               // PWMパルス幅の最小値 (マイクロ秒) - 後退最大または停止に対応
@@ -19,8 +20,8 @@
 bool thruster_init();
 // スラスター制御を無効化する (PWM停止など)
 void thruster_disable();
-// ゲームパッドデータに基づいてすべてのスラスターのPWM出力を更新する
-void thruster_update(const GamepadData &data);
+// ゲームパッドデータとジャイロデータに基づいてすべてのスラスターのPWM出力を更新する
+void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data);
 
 // ヘルパー関数（他の場所で必要ない場合は .cpp 内部に保持できます）
 // float map_value(float x, float in_min, float in_max, float out_min, float out_max);
