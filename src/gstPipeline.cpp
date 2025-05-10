@@ -1,7 +1,7 @@
 #include "gstPipeline.h"
-#include <cstdlib>  // system() 関数を使用するため
-#include <iostream> // エラー出力のため (std::cerr)
-#include <string>   // コマンド文字列を扱うため
+#include <cstdlib>    // system() 関数を使用するため
+#include <iostream>   // エラー出力のため (std::cerr)
+#include <string>     // コマンド文字列を扱うため
 #include <sys/wait.h> // WIFEXITED, WEXITSTATUS を使用するため
 #include <errno.h>    // errno を使用するため
 
@@ -11,14 +11,14 @@ bool start_gstreamer_pipelines()
     // カメラ1のパイプラインコマンド
     const std::string cmd1 = "gst-launch-1.0 v4l2src device=/dev/video0 ! "
                              "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! "
-                             "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=ultrafast ! "
-                             "mpegtsmux ! udpsink host=192.168.6.10 port=5000 > /dev/null 2>&1 &";
+                             "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=superfast ! "
+                             "rtph264pay config-interval=1 pt=96 ! udpsink port=5000 > /dev/null 2>&1 &";
 
     // カメラ2のパイプラインコマンド
     const std::string cmd2 = "gst-launch-1.0 v4l2src device=/dev/video2 ! "
                              "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! "
-                             "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=ultrafast ! "
-                             "mpegtsmux ! udpsink host=192.168.6.10 port=5002 > /dev/null 2>&1 &";
+                             "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=superfast ! "
+                             "rtph264pay config-interval=1 pt=96 ! udpsink port=5002 > /dev/null 2>&1 &";
 
     std::cout << "GStreamerパイプラインを起動します..." << std::endl;
 
@@ -54,8 +54,8 @@ void stop_gstreamer_pipelines()
     // 停止対象のパイプラインを識別するためのコマンドパターン
     // start_gstreamer_pipelines で使用したコマンドの一部にマッチするように指定
     const char *kill_cmd_patterns[] = {
-        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video0.*udpsink host=192.168.6.10 port=5000\"",
-        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video2.*udpsink host=192.168.6.10 port=5002\""};
+        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video0.*udpsink port=5000\"",
+        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video2.*udpsink port=5002\""};
     const char *pipeline_names[] = {"パイプライン1 (video0)", "パイプライン2 (video2)"};
 
     for (int i = 0; i < 2; ++i)
