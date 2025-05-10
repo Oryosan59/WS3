@@ -3,7 +3,6 @@
 #include "gamepad.h"          // ゲームパッドデータ構造体とパース関数
 #include "thruster_control.h" // スラスター制御関連
 #include "sensor_data.h"      // センサーデータ読み取り・フォーマット関連
-#include "bindings.h"         // ハードウェア初期化関数 (init) など
 #include "gstPipeline.h"      // GStreamerパイプライン起動用
 
 #include <iostream> // 標準入出力 (std::cout, std::cerr)
@@ -76,7 +75,9 @@ int main()
         //    ジャイロデータもここで読み取って渡す (センサーデータ送信とは別にリアルタイム性を重視)
         current_gyro_data = read_gyro(); // ジャイロデータを読み取る
         // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        thruster_update(latest_gamepad_data, current_gyro_data);
+        AxisData latest_gyro_data; // AxisData型の変数を宣言
+        // 例: latest_gyro_data = read_gyro(); // read_gyro() のような関数でジャイロデータを取得し、セットする
+        thruster_update(latest_gamepad_data, latest_gyro_data); // 2つの引数を渡す
 
         // 3. センサーデータ読み取り＆フォーマット
         if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer))) // この関数内で read_gyro() も呼ばれるが、スラスター制御用には別途取得
@@ -98,7 +99,7 @@ int main()
 
         // スラスター制御更新 (センサーデータ読み取り後、ログ表示後に実行)
         // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        thruster_update(latest_gamepad_data);
+        thruster_update(latest_gamepad_data, current_gyro_data);
 
         // 5. 終了条件チェック
         // ゲームパッドの Start ボタンが押されたらループを終了

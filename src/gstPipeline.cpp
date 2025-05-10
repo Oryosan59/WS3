@@ -10,15 +10,15 @@ bool start_gstreamer_pipelines()
 {
     // カメラ1のパイプラインコマンド
     const std::string cmd1 = "gst-launch-1.0 v4l2src device=/dev/video0 ! "
-                             "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! "
+                             "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! " // jpegdec の後にスペースを追加
                              "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=superfast ! "
-                             "rtph264pay config-interval=1 pt=96 ! udpsink port=5000 > /dev/null 2>&1 &";
+                             "rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.0.16 port=5000 > /dev/null 2>&1 &";
 
     // カメラ2のパイプラインコマンド
     const std::string cmd2 = "gst-launch-1.0 v4l2src device=/dev/video2 ! "
-                             "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! "
+                             "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! " // jpegdec の後にスペースを追加
                              "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=superfast ! "
-                             "rtph264pay config-interval=1 pt=96 ! udpsink port=5002 > /dev/null 2>&1 &";
+                             "rtph264pay config-interval=1 pt=96 ! udpsink host=192.168.0.16 port=5001 > /dev/null 2>&1 &";
 
     std::cout << "GStreamerパイプラインを起動します..." << std::endl;
 
@@ -54,8 +54,8 @@ void stop_gstreamer_pipelines()
     // 停止対象のパイプラインを識別するためのコマンドパターン
     // start_gstreamer_pipelines で使用したコマンドの一部にマッチするように指定
     const char *kill_cmd_patterns[] = {
-        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video0.*udpsink port=5000\"",
-        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video2.*udpsink port=5002\""};
+        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video0.*udpsink host=192.168.0.16 port=5000\"",
+        "pkill -f \"gst-launch-1.0 v4l2src device=/dev/video2.*udpsink host=192.168.0.16 port=5001\""};
     const char *pipeline_names[] = {"パイプライン1 (video0)", "パイプライン2 (video2)"};
 
     for (int i = 0; i < 2; ++i)

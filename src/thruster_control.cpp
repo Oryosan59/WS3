@@ -1,8 +1,7 @@
 #include "thruster_control.h"
-#include "bindings.h" // For set_pwm_* functions
-#include <cmath>      // For std::abs
-#include <algorithm>  // For std::max, std::min
-#include <stdio.h>    // For printf
+#include <cmath>     // For std::abs
+#include <algorithm> // For std::max, std::min
+#include <stdio.h>   // For printf
 
 // --- ヘルパー関数 ---
 
