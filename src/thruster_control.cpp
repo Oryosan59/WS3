@@ -201,6 +201,41 @@ static void update_horizontal_thrusters(const GamepadData &data, const AxisData 
         pwm_out[2] += correction_pwm_yaw; // 左ヨーを助ける (Ch2を強める)
         pwm_out[3] -= correction_pwm_yaw; // 左ヨーを助ける (Ch3を弱める)
     }
+
+    // --- GyroによるYaw補正 (Rx入力時にZ軸回転しないよう補正) ---
+    if (!lx_active && rx_active)
+    {
+        // GyroのZ軸角速度が±一定以上なら補正を行う
+        const float yaw_threshold_dps = 2.0f; // deg/s単位のしきい値（調整可能）
+        const float yaw_gain = 50.0f;         // 補正のゲイン（調整可能）
+
+        float yaw_rate = gyro_data.z; // Z軸の角速度[deg/s]
+
+        if (std::abs(yaw_rate) > yaw_threshold_dps)
+        {
+            // Yaw補正のLx寄与を生成（符号反転：回転を打ち消す）
+            int yaw_pwm = static_cast<int>(yaw_rate * -yaw_gain);
+
+            // yaw_pwmを安全な範囲にクリップ（±で出る値を考慮してオフセット加算）
+            yaw_pwm = std::max(-400, std::min(400, yaw_pwm));
+
+            // 既存のpwm_rxにLx補正を加える
+            // Lxと同様のチャネルへ適用（Lxと同じ方向に推力を加えることで補正）
+            if (yaw_pwm < 0)
+            {
+                // 左旋回を打ち消す（＝右回転） → Ch 0,3を加算
+                pwm_out[0] = std::min(PWM_BOOST_MAX, pwm_out[0] + std::abs(yaw_pwm));
+                pwm_out[3] = std::min(PWM_BOOST_MAX, pwm_out[3] + std::abs(yaw_pwm));
+            }
+            else
+            {
+                // 右旋回を打ち消す（＝左回転） → Ch 1,2を加算
+                pwm_out[1] = std::min(PWM_BOOST_MAX, pwm_out[1] + yaw_pwm);
+                pwm_out[2] = std::min(PWM_BOOST_MAX, pwm_out[2] + yaw_pwm);
+            }
+        }
+    }
+
 } // 最終的なクランプは set_thruster_pwm で行われる
 
 // 前進/後退スラスター制御ロジック
