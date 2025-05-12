@@ -18,7 +18,7 @@ static bool create_pipeline(const std::string& device, int port, GstElement** pi
                                "image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! "
                                "videoconvert ! x264enc tune=zerolatency bitrate=5000 speed-preset=superfast ! "
                                "rtph264pay config-interval=1 pt=96 ! "
-                               "udpsink host=192.168.4.100 port=" + std::to_string(port);
+                               "udpsink host=192.168.4.10 port=" + std::to_string(port);
 
     GError* error = nullptr;
     *pipeline = gst_parse_launch(pipeline_str.c_str(), &error);

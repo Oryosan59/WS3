@@ -26,14 +26,17 @@ bool read_and_format_sensor_data(char *buffer, size_t buffer_size)
     // --- 文字列へのフォーマット ---
     // snprintf を使用して、取得したセンサーデータをカンマ区切りの文字列にフォーマットする
     // 各センサー値にラベルを付け、固定小数点数 (%.6f) または整数 (%d) で表現する
-    int written = snprintf(buffer, buffer_size,
-                           "TEMP:%.6f,PRESSURE:%.6f,LEAK:%d,ADC:%.6f,%.6f,%.6f,%.6f,"
-                           "ACC:%.6f,%.6f,%.6f,GYRO:%.6f,%.6f,%.6f,MAG:%.6f,%.6f,%.6f",
-                           temperature, pressure, leak ? 1 : 0, // 温度、圧力、リーク (true=1, false=0)
-                           adc[0], adc[1], adc[2], adc[3],      // ADCチャンネル 0-3
-                           accel.x, accel.y, accel.z,           // 加速度 X, Y, Z
-                           gyro.x, gyro.y, gyro.z,              // ジャイロ X, Y, Z
-                           mag.x, mag.y, mag.z);                // 磁力 X, Y, Z
+    int written = snprintf(buffer, buffer_size, // NOLINT
+                           "TEMP:%.6f,PRESSURE:%.6f,LEAK:%d,"
+                           "ADC0:%.6f,ADC1:%.6f,ADC2:%.6f,ADC3:%.6f,"
+                           "ACCX:%.6f,ACCY:%.6f,ACCZ:%.6f,"
+                           "GYROX:%.6f,GYROY:%.6f,GYROZ:%.6f,"
+                           "MAGX:%.6f,MAGY:%.6f,MAGZ:%.6f",
+                           temperature, pressure, leak ? 1 : 0,
+                           adc[0], adc[1], adc[2], adc[3],
+                           accel.x, accel.y, accel.z,
+                           gyro.x, gyro.y, gyro.z,
+                           mag.x, mag.y, mag.z);
 
     // --- エラーチェック ---
     // snprintf の戻り値を確認
