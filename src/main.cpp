@@ -47,7 +47,7 @@ int main()
     AxisData current_gyro_data = {0.0f, 0.0f, 0.0f}; // 最新のジャイロデータを保持
     char sensor_buffer[SENSOR_BUFFER_SIZE];          // センサーデータ送信用文字列バッファ
     unsigned int loop_counter = 0;                   // センサーデータ送信間隔制御用カウンター
-    const unsigned int SENSOR_SEND_INTERVAL = 500;   // センサーデータを送信するループ間隔 (例: 5000Hzループ / 500 = 10Hz送信)
+    const unsigned int SENSOR_SEND_INTERVAL = 10;   // センサーデータを送信するループ間隔 (例: 5000Hzループ / 500 = 10Hz送信)
     bool running = true;                             // メインループの実行フラグ
 
     std::cout << "メインループ開始。Startボタンで終了。" << std::endl;
