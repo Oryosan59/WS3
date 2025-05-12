@@ -12,6 +12,12 @@ INC_DIR = include # プロジェクト自身のインクルードディレクト
 # コマンドで指定された特定のパスを使用
 NAVIGATOR_LIB_PATH = /home/pi/navigator-lib/target/debug
 
+# --- GStreamer API のためのフラグとライブラリ ---
+# pkg-config を使用して GStreamer のコンパイルフラグとリンクライブラリを取得
+GSTREAMER_CFLAGS = $(shell pkg-config --cflags gstreamer-1.0)
+GSTREAMER_LIBS = $(shell pkg-config --libs gstreamer-1.0)
+CXXFLAGS += $(GSTREAMER_CFLAGS) # GStreamer のコンパイルフラグを追加
+
 # --- インクルードディレクトリ ---
 # プロジェクトのインクルードディレクトリと外部ライブラリのインクルードディレクトリを追加
 INCLUDES = -I$(INC_DIR) -I$(NAVIGATOR_LIB_PATH)
@@ -23,6 +29,7 @@ LDFLAGS = -L$(NAVIGATOR_LIB_PATH) \
 # --- リンクするライブラリ ---
 # コマンドで指定された特定のライブラリ名を使用
 LIBS = -lbluerobotics_navigator -lpthread -lm
+LIBS += $(GSTREAMER_LIBS) # GStreamer のリンクライブラリを追加
 
 # --- ターゲット実行ファイル ---
 TARGET_NAME = navigator_control
