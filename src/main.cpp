@@ -46,6 +46,8 @@ int main()
     char recv_buffer[NET_BUFFER_SIZE];               // UDP受信バッファ
     AxisData current_gyro_data = {0.0f, 0.0f, 0.0f}; // 最新のジャイロデータを保持
     char sensor_buffer[SENSOR_BUFFER_SIZE];          // センサーデータ送信用文字列バッファ
+    unsigned int loop_counter = 0;                   // センサーデータ送信間隔制御用カウンター
+    const unsigned int SENSOR_SEND_INTERVAL = 500;   // センサーデータを送信するループ間隔 (例: 5000Hzループ / 500 = 10Hz送信)
     bool running = true;                             // メインループの実行フラグ
 
     std::cout << "メインループ開始。Startボタンで終了。" << std::endl;
@@ -71,35 +73,37 @@ int main()
         }
         // recv_len == 0 または EAGAIN/EWOULDBLOCK の場合:
         // データがないことを示す。この場合、前回受信した latest_gamepad_data をそのまま使用する。
-        // 2. スラスター制御更新
-        //    ジャイロデータもここで読み取って渡す (センサーデータ送信とは別にリアルタイム性を重視)
-        current_gyro_data = read_gyro(); // ジャイロデータを読み取る
+
+        // 2. スラスター制御更新 (毎ループ実行)
+        // 最新のジャイロデータを読み取り、スラスター制御に使用
+        current_gyro_data = read_gyro();
         // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        AxisData latest_gyro_data; // AxisData型の変数を宣言
-        // 例: latest_gyro_data = read_gyro(); // read_gyro() のような関数でジャイロデータを取得し、セットする
-        thruster_update(latest_gamepad_data, latest_gyro_data); // 2つの引数を渡す
+        thruster_update(latest_gamepad_data, current_gyro_data);
 
-        // 3. センサーデータ読み取り＆フォーマット
-        if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer))) // この関数内で read_gyro() も呼ばれるが、スラスター制御用には別途取得
+        // 3. センサーデータ処理 (読み取り、フォーマット、送信) - 一定間隔で実行
+        if (loop_counter >= SENSOR_SEND_INTERVAL)
         {
-            // ★★★ センサーデータのログ表示を追加 ★★★
-            // thruster_update の直前にログを出すことで、制御入力とセンサー状態を関連付けやすくする
-            std::cout << "[SENSOR LOG] " << sensor_buffer << std::endl;
+            loop_counter = 0; // カウンターリセット
 
-            // 4. センサーデータ送信 (送信先が分かっている場合のみ)
-            if (net_ctx.client_addr_known)
+            if (read_and_format_sensor_data(sensor_buffer, sizeof(sensor_buffer)))
             {
-                network_send(&net_ctx, sensor_buffer, strlen(sensor_buffer)); // フォーマットされたセンサーデータを送信
+                std::cout << "[SENSOR LOG] " << sensor_buffer << std::endl; // ログは送信時のみ表示
+
+                // 4. センサーデータ送信 (送信先が分かっている場合のみ)
+                if (net_ctx.client_addr_known)
+                {
+                    network_send(&net_ctx, sensor_buffer, strlen(sensor_buffer)); // フォーマットされたセンサーデータを送信
+                }
+            }
+            else
+            {
+                std::cerr << "センサーデータの読み取り/フォーマットに失敗。" << std::endl;
             }
         }
         else
         {
-            std::cerr << "センサーデータの読み取り/フォーマットに失敗。" << std::endl;
+            loop_counter++; // カウンターインクリメント
         }
-
-        // スラスター制御更新 (センサーデータ読み取り後、ログ表示後に実行)
-        // 常に最新(または前回受信)のゲームパッド状態でスラスターを更新
-        thruster_update(latest_gamepad_data, current_gyro_data);
 
         // 5. 終了条件チェック
         // ゲームパッドの Start ボタンが押されたらループを終了
@@ -110,7 +114,7 @@ int main()
         }
 
         // 6. ループ待機 (CPU負荷軽減とループ頻度調整)
-        usleep(10000); // 10ミリ秒待機 (約100Hzのループ周波数)
+        usleep(10000); // 0.2ミリ秒待機 (約5000Hzのループ周波数)
     }
 
     // --- クリーンアップ ---
