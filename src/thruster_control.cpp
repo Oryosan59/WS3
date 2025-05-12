@@ -152,42 +152,89 @@ static void update_horizontal_thrusters(const GamepadData &data, const AxisData 
         }
     }
 
-    // === ジャイロ補正項目 ===
-    const float yaw_gain = 100.0f;    // Z軸（ヨー）補正ゲイン
-    const float roll_gain = 100.0f;   // X軸（ロール）補正ゲイン
-    
-    float yaw_rate = gyro_data.z;     // Z軸角速度
-    float roll_rate = gyro_data.x;    // X軸角速度
-    
-    int yaw_correction = static_cast<int>(yaw_rate * yaw_gain);
-    int roll_correction = static_cast<int>(roll_rate * roll_gain);
+    // --- ジャイロによるロール安定化補正 (エルロン操作時) ---
+    // rx_active は data.rightThumbX (エルロン操作) がデッドゾーン外であるかを示すフラグ
+    if (rx_active) // エルロン操作中のみ安定化制御を行う
+    {
+        // --- ロール補正 ---
+        // 仮定: gyro_data.x がロール軸の角速度 (右へのロールが正)
+        //       単位が deg/s の場合を想定。rad/s ならKp値を調整。
+        float roll_rate = gyro_data.x;
 
-    // === ジャイロ補正出力（pwm_gyro） ===
-    int pwm_gyro[4] = {0, 0, 0, 0};
-    
-    // ヨー：左右スラスター逆方向に補正
-    pwm_gyro[0] -= yaw_correction; // 前左
-    pwm_gyro[1] += yaw_correction; // 前右
-    pwm_gyro[2] -= yaw_correction; // 後左
-    pwm_gyro[3] += yaw_correction; // 後右
+        // P制御ゲイン (要調整: この値は非常に小さい値から試してください)
+        const float Kp_roll = 0.2f; // ★★★ 要調整 ★★★
 
-    // ロール：左右スラスターに逆の補正（転倒防止）
-    pwm_gyro[0] -= roll_correction; // 前左
-    pwm_gyro[1] += roll_correction; // 前右
-    pwm_gyro[2] -= roll_correction; // 後左
-    pwm_gyro[3] += roll_correction; // 後右
+        // 補正値の計算
+        // roll_rate > 0 (右にロール) の場合、左回転の力を加えたい。
+        // 左回転は Ch1(前右)とCh2(後左)を強く、Ch0(前左)とCh3(後右)を弱くする。
+        // correction_pwm_roll が正の時に左回転を強める。
+        int correction_pwm_roll = static_cast<int>(roll_rate * Kp_roll);
 
-    // === スティック入力に基づく通常制御 ===
-    // pwm_lx, pwm_rxなどの計算...
+        // pwm_out にロール補正を適用 (回転スラスターのバランスを調整)
+        // Ch0 (前左): 減らす (左回転のため)
+        // Ch1 (前右): 増やす (左回転のため)
+        // Ch2 (後左): 増やす (左回転のため)
+        // Ch3 (後右): 減らす (左回転のため)
+        pwm_out[0] -= correction_pwm_roll;
+        pwm_out[1] += correction_pwm_roll;
+        pwm_out[2] += correction_pwm_roll;
+        pwm_out[3] -= correction_pwm_roll;
 
-    // === 最終出力 ===
-    for (int i = 0; i < 4; ++i) {
-        pwm_out[i] = std::max({pwm_lx[i], pwm_rx[i], pwm_combined[i]}) + pwm_gyro[i];
+        // --- ヨー補正 (Z軸回転の調整) ---
+        // 仮定: gyro_data.z がヨー軸の角速度 (右へのヨーイングが正)
+        //       単位が deg/s の場合を想定。rad/s ならKp値を調整。
+        //       センサーのZ軸が機体のヨー軸と一致しているか、符号が正しいか確認してください。
+        float yaw_rate = gyro_data.z;
 
-        // PWM制限（例: 1100～1900）
-        pwm_out[i] = std::clamp(pwm_out[i], 1100, 1900);
+        // P制御ゲイン (ヨー用 - 要調整)
+        const float Kp_yaw = 0.15f; // ★★★ 要調整 ★★★ (ロール用とは別に調整)
+
+        // ヨー補正値の計算
+        // yaw_rate > 0 (右にヨー) の場合、左ヨーの力を加えたい。
+        // 左ヨーは Ch1(前右)とCh2(後左)を強く、Ch0(前左)とCh3(後右)を弱くする (回転制御と同じ)。
+        // correction_pwm_yaw が正の時に左ヨーを強める。
+        int correction_pwm_yaw = static_cast<int>(yaw_rate * Kp_yaw);
+
+        // pwm_out にヨー補正を適用 (回転スラスターのバランスを調整)
+        pwm_out[0] -= correction_pwm_yaw; // 左ヨーを助ける (Ch0を弱める)
+        pwm_out[1] += correction_pwm_yaw; // 左ヨーを助ける (Ch1を強める)
+        pwm_out[2] += correction_pwm_yaw; // 左ヨーを助ける (Ch2を強める)
+        pwm_out[3] -= correction_pwm_yaw; // 左ヨーを助ける (Ch3を弱める)
     }
 
+    // --- GyroによるYaw補正 (Rx入力時にZ軸回転しないよう補正) ---
+    if (!lx_active)
+    {
+        // GyroのZ軸角速度が±一定以上なら補正を行う
+        const float yaw_threshold_dps = 2.0f; // deg/s単位のしきい値（調整可能）
+        const float yaw_gain = 50.0f;         // 補正のゲイン（調整可能）
+
+        float yaw_rate = gyro_data.z; // Z軸の角速度[deg/s]
+
+        if (std::abs(yaw_rate) > yaw_threshold_dps)
+        {
+            // Yaw補正のLx寄与を生成（符号反転：回転を打ち消す）
+            int yaw_pwm = static_cast<int>(yaw_rate * -yaw_gain);
+
+            // yaw_pwmを安全な範囲にクリップ（±で出る値を考慮してオフセット加算）
+            yaw_pwm = std::max(-400, std::min(400, yaw_pwm));
+
+            // 既存のpwm_rxにLx補正を加える
+            // Lxと同様のチャネルへ適用（Lxと同じ方向に推力を加えることで補正）
+            if (yaw_pwm < 0)
+            {
+                // 左旋回を打ち消す（＝右回転） → Ch 0,3を加算
+                pwm_out[0] = std::min(PWM_BOOST_MAX, pwm_out[0] + std::abs(yaw_pwm));
+                pwm_out[3] = std::min(PWM_BOOST_MAX, pwm_out[3] + std::abs(yaw_pwm));
+            }
+            else
+            {
+                // 右旋回を打ち消す（＝左回転） → Ch 1,2を加算
+                pwm_out[1] = std::min(PWM_BOOST_MAX, pwm_out[1] + yaw_pwm);
+                pwm_out[2] = std::min(PWM_BOOST_MAX, pwm_out[2] + yaw_pwm);
+            }
+        }
+    }
 
 } // 最終的なクランプは set_thruster_pwm で行われる
 
