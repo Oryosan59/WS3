@@ -13,7 +13,12 @@
 #define PWM_PERIOD_US (1000000.0f / PWM_FREQUENCY) // PWM信号の周期 (マイクロ秒) - 50Hzの場合20000us
 
 #define JOYSTICK_DEADZONE 6500 // ジョイスティック入力のデッドゾーン閾値 (この値以下は無視)
-#define NUM_THRUSTERS 5        // 制御対象のスラスター総数 (水平4 + 垂直/前進1?) - 要確認: 現在の実装ではCh0-3が水平、Ch4,5が前進
+#define NUM_THRUSTERS 6        // 制御対象のスラスター総数 (Ch0-3 水平, Ch4-5 前進/後退)
+
+// --- LED制御用定数 ---
+#define LED_PWM_CHANNEL 9      // LEDを制御するPWMチャンネル番号
+#define LED_PWM_ON 1900        // LED点灯時のPWM値
+#define LED_PWM_OFF 1500       // LED消灯時のPWM値 (1500以下で消灯との指示に基づき1500に設定)
 
 // --- 関数のプロトタイプ宣言 ---
 // スラスター制御モジュールを初期化する (PWM設定など)

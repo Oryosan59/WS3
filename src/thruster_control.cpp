@@ -48,7 +48,9 @@ bool thruster_init()
     {
         set_thruster_pwm(i, PWM_MIN); // または適用可能であれば PWM_NEUTRAL
     }
-    printf("Thrusters initialized to PWM %d.\n", PWM_MIN);
+    // LEDチャンネルを初期状態 (OFF) に設定
+    set_thruster_pwm(LED_PWM_CHANNEL, LED_PWM_OFF);
+    printf("Thrusters initialized to PWM %d. LED on Ch%d initialized to PWM %d (OFF).\n", PWM_MIN, LED_PWM_CHANNEL, LED_PWM_OFF);
     return true; // 初期化関数が簡単にステータスを返さないと仮定
 }
 
@@ -60,6 +62,8 @@ void thruster_disable()
     {
         set_thruster_pwm(i, PWM_MIN); // または PWM_NEUTRAL
     }
+    // LEDチャンネルをOFFに設定
+    set_thruster_pwm(LED_PWM_CHANNEL, LED_PWM_OFF);
     set_pwm_enable(false);
 }
 
@@ -271,14 +275,27 @@ void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
     int forward_pwm = calculate_forward_reverse_pwm(gamepad_data.rightThumbY);
 
     // --- PWM信号をスラスターに送信 ---
-    printf("--- Thruster PWM ---\n");
+    printf("--- Thruster and LED PWM ---\n");
+    // 水平スラスター
     for (int i = 0; i < 4; ++i)
     {
         set_thruster_pwm(i, horizontal_pwm[i]);                // 水平スラスターPWM設定
         printf("Ch%d: Hori PWM = %d\n", i, horizontal_pwm[i]); // デバッグ
     }
+    // 前進/後退スラスター
     set_thruster_pwm(4, forward_pwm);
+    printf("Ch4: FwdRev PWM = %d\n", forward_pwm);
     set_thruster_pwm(5, forward_pwm);
-    printf("Ch4: FwdRev PWM = %d\n", forward_pwm); // Debug
+    printf("Ch5: FwdRev PWM = %d\n", forward_pwm); // Ch5のデバッグ出力追加
+
+    // --- LED制御 ---
+    int led_pwm_value = LED_PWM_OFF;
+    if (gamepad_data.buttons & GamepadButton::Y)
+    {
+        led_pwm_value = LED_PWM_ON;
+    }
+    set_thruster_pwm(LED_PWM_CHANNEL, led_pwm_value);
+    printf("Ch%d: LED PWM = %d (%s)\n", LED_PWM_CHANNEL, led_pwm_value, (led_pwm_value == LED_PWM_ON ? "ON" : "OFF"));
+
     printf("--------------------\n");
 }
