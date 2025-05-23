@@ -291,14 +291,16 @@ void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
     // --- LED制御 ---
     // 静的変数を導入してLEDの現在のPWM値とYボタンの前回状態を保持
     static int current_led_pwm = LED_PWM_OFF; // 初期状態は消灯
-    static bool x_button_previously_pressed = false;
+    static bool y_button_previously_pressed = false;
 
-    // 現在のXボタンの押下状態を取得
+    // 現在のYボタンの押下状態を取得
+    // gamepad.h の GamepadButton::Y の値が送信側のデータと一致している必要があります。
+    // 現在の定義 Y = 0x32768 (10進数) は 0x8000 (16進数) と等価であり、
     // gamepad_data.buttons (uint16_t) とのビットAND演算で正しく動作する想定です。
-    bool x_button_currently_pressed = (gamepad_data.buttons & GamepadButton::X);
+    bool y_button_currently_pressed = (gamepad_data.buttons & GamepadButton::Y);
 
-    // Xボタンが押された瞬間 (前回押されておらず、今回押された場合) にLEDの状態をトグル
-    if (x_button_currently_pressed && !x_button_previously_pressed)
+    // Yボタンが押された瞬間 (前回押されておらず、今回押された場合) にLEDの状態をトグル
+    if (y_button_currently_pressed && !y_button_previously_pressed)
     {
         if (current_led_pwm == LED_PWM_OFF) {
             current_led_pwm = LED_PWM_ON;
@@ -307,7 +309,7 @@ void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
         }
     }
     // Yボタンの現在の状態を次回のために保存
-    x_button_currently_pressed = x_button_currently_pressed;
+    y_button_previously_pressed = y_button_currently_pressed;
 
     set_thruster_pwm(LED_PWM_CHANNEL, current_led_pwm);
     printf("Ch%d: LED PWM = %d (%s)\n", LED_PWM_CHANNEL, current_led_pwm, (current_led_pwm == LED_PWM_ON ? "ON" : "OFF"));
