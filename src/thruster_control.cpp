@@ -213,7 +213,7 @@ static void update_horizontal_thrusters(const GamepadData &data, const AxisData 
         const float yaw_threshold_dps = 2.0f; // deg/s単位のしきい値（調整可能）
         const float yaw_gain = 50.0f;         // 補正のゲイン（調整可能）
 
-        float yaw_rate = gyro_data.z; // Z軸の角速度[deg/s]
+        float yaw_rate = -gyro_data.z; // Z軸の角速度[deg/s]
 
         if (std::abs(yaw_rate) > yaw_threshold_dps)
         {
@@ -302,9 +302,12 @@ void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
     // Yボタンが押された瞬間 (前回押されておらず、今回押された場合) にLEDの状態をトグル
     if (y_button_currently_pressed && !y_button_previously_pressed)
     {
-        if (current_led_pwm == LED_PWM_OFF) {
+        if (current_led_pwm == LED_PWM_OFF)
+        {
             current_led_pwm = LED_PWM_ON;
-        } else {
+        }
+        else
+        {
             current_led_pwm = LED_PWM_OFF;
         }
     }
