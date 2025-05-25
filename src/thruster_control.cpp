@@ -213,7 +213,7 @@ static void update_horizontal_thrusters(const GamepadData &data, const AxisData 
         const float yaw_threshold_dps = 2.0f; // deg/s単位のしきい値（調整可能）
         const float yaw_gain = 50.0f;         // 補正のゲイン（調整可能）
 
-        float yaw_rate = gyro_data.z; // Z軸の角速度[deg/s]
+        float yaw_rate = -gyro_data.z; // Z軸の角速度[deg/s]
 
         if (std::abs(yaw_rate) > yaw_threshold_dps)
         {
