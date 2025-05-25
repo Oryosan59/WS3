@@ -62,7 +62,10 @@
     "memory_resource": "cpp",
     "numeric": "cpp",
     "random": "cpp",
-    "fstream": "cpp"
+    "fstream": "cpp",
+    "chrono": "cpp",
+    "ratio": "cpp",
+    "thread": "cpp"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
