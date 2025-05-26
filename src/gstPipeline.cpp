@@ -95,25 +95,25 @@ bool start_gstreamer_pipelines() {
     // GStreamerライブラリの初期化 (アプリケーション開始時に一度だけ呼び出す)
     gst_init(nullptr, nullptr);
 
-    // // カメラ1 (/dev/video2) の設定: H.264ネイティブソースとして設定
-    // PipelineConfig config1;
-    // config1.device = "/dev/video2";
-    // config1.port = 5000;
-    // config1.is_h264_native_source = true; // H.264ネイティブソースであることを指定
-    // // その他のパラメータ (解像度、フレームレートなど) はPipelineConfig構造体のデフォルト値を使用
+    // カメラ1 (/dev/video2) の設定: H.264ネイティブソースとして設定
+    PipelineConfig config1;
+    config1.device = "/dev/video2";
+    config1.port = 5000;
+    config1.is_h264_native_source = true; // H.264ネイティブソースであることを指定
+    // その他のパラメータ (解像度、フレームレートなど) はPipelineConfig構造体のデフォルト値を使用
 
-    // // カメラ1のパイプラインを作成・起動
-    // if (!create_pipeline(config1, &pipeline1, &main_loop1)) return false;
+    // カメラ1のパイプラインを作成・起動
+    if (!create_pipeline(config1, &pipeline1, &main_loop1)) return false;
 
-    // カメラ2 (/dev/video0) の設定: JPEGソースとして設定 (H.264へのエンコードが必要)
-    PipelineConfig config2;
-    config2.device = "/dev/video0";
-    config2.port = 5001;
-    config2.is_h264_native_source = false; // H.264ネイティブではない (エンコードが必要) ことを指定
-    // x264encのパラメータはPipelineConfig構造体のデフォルト値を使用
+    // // カメラ2 (/dev/video0) の設定: JPEGソースとして設定 (H.264へのエンコードが必要)
+    // PipelineConfig config2;
+    // config2.device = "/dev/video0";
+    // config2.port = 5001;
+    // config2.is_h264_native_source = false; // H.264ネイティブではない (エンコードが必要) ことを指定
+    // // x264encのパラメータはPipelineConfig構造体のデフォルト値を使用
 
-    // カメラ2のパイプラインを作成・起動
-    if (!create_pipeline(config2, &pipeline2, &main_loop2)) return false;
+    // // カメラ2のパイプラインを作成・起動
+    // if (!create_pipeline(config2, &pipeline2, &main_loop2)) return false;
 
     // 各パイプラインのGMainLoopを別々のスレッドで実行開始
     // loop_thread1 = std::thread(run_main_loop, main_loop1);
@@ -126,39 +126,39 @@ bool start_gstreamer_pipelines() {
 void stop_gstreamer_pipelines() {
     std::cout << "GStreamerパイプラインを停止します..." << std::endl;
 
-    // if (pipeline1) {
-    //     // パイプライン1をNULL状態に遷移させて停止
-    //     gst_element_set_state(pipeline1, GST_STATE_NULL);
-    //     // パイプライン1オブジェクトの参照カウントを減らす (不要になれば解放される)
-    //     gst_object_unref(pipeline1);
-    //     pipeline1 = nullptr;
-    // }
-    // if (main_loop1) {
-    //     // メインループ1に終了を要求
-    //     g_main_loop_quit(main_loop1);
-    //     // メインループ1を実行しているスレッドが終了するのを待つ
-    //     if (loop_thread1.joinable()) loop_thread1.join();
-    //     // メインループ1オブジェクトの参照カウントを減らす
-    //     g_main_loop_unref(main_loop1);
-    //     main_loop1 = nullptr;
-    // }
+    if (pipeline1) {
+        // パイプライン1をNULL状態に遷移させて停止
+        gst_element_set_state(pipeline1, GST_STATE_NULL);
+        // パイプライン1オブジェクトの参照カウントを減らす (不要になれば解放される)
+        gst_object_unref(pipeline1);
+        pipeline1 = nullptr;
+    }
+    if (main_loop1) {
+        // メインループ1に終了を要求
+        g_main_loop_quit(main_loop1);
+        // メインループ1を実行しているスレッドが終了するのを待つ
+        if (loop_thread1.joinable()) loop_thread1.join();
+        // メインループ1オブジェクトの参照カウントを減らす
+        g_main_loop_unref(main_loop1);
+        main_loop1 = nullptr;
+    }
 
-    if (pipeline2) {
-        // パイプライン2をNULL状態に遷移させて停止
-        gst_element_set_state(pipeline2, GST_STATE_NULL);
-        // パイプライン2オブジェクトの参照カウントを減らす
-        gst_object_unref(pipeline2);
-        pipeline2 = nullptr;
-    }
-    if (main_loop2) {
-        // メインループ2に終了を要求
-        g_main_loop_quit(main_loop2);
-        // メインループ2を実行しているスレッドが終了するのを待つ
-        if (loop_thread2.joinable()) loop_thread2.join();
-        // メインループ2オブジェクトの参照カウントを減らす
-        g_main_loop_unref(main_loop2);
-        main_loop2 = nullptr;
-    }
+    // if (pipeline2) {
+    //     // パイプライン2をNULL状態に遷移させて停止
+    //     gst_element_set_state(pipeline2, GST_STATE_NULL);
+    //     // パイプライン2オブジェクトの参照カウントを減らす
+    //     gst_object_unref(pipeline2);
+    //     pipeline2 = nullptr;
+    // }
+    // if (main_loop2) {
+    //     // メインループ2に終了を要求
+    //     g_main_loop_quit(main_loop2);
+    //     // メインループ2を実行しているスレッドが終了するのを待つ
+    //     if (loop_thread2.joinable()) loop_thread2.join();
+    //     // メインループ2オブジェクトの参照カウントを減らす
+    //     g_main_loop_unref(main_loop2);
+    //     main_loop2 = nullptr;
+    // }
 
     std::cout << "GStreamerパイプラインを停止しました。" << std::endl;
 }
