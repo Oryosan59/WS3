@@ -18,7 +18,7 @@
 // --- LED制御用定数 ---
 #define LED_PWM_CHANNEL 9      // LEDを制御するPWMチャンネル番号
 #define LED_PWM_ON 1900        // LED点灯時のPWM値
-#define LED_PWM_OFF 1500       // LED消灯時のPWM値 (1500以下で消灯との指示に基づき1500に設定)
+#define LED_PWM_OFF 1100       // LED消灯時のPWM値 (1100以下で消灯との指示に基づき1100に設定)
 
 // --- 関数のプロトタイプ宣言 ---
 // スラスター制御モジュールを初期化する (PWM設定など)
