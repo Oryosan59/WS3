@@ -319,3 +319,16 @@ void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data)
 
     printf("--------------------\n");
 }
+
+// すべてのスラスターを指定されたPWM値に設定し、LEDをオフにする関数
+void thruster_set_all_pwm(int pwm_value)
+{
+    // printf("フェイルセーフ: 全スラスターをPWM %d に設定、LEDをオフ\n", pwm_value);
+    for (int i = 0; i < NUM_THRUSTERS; ++i) // NUM_THRUSTERS は Ch0 から Ch5 までを想定
+    {
+        // set_thruster_pwm はクランプ処理を含むので安全
+        set_thruster_pwm(i, pwm_value);
+    }
+    // フェイルセーフ時にはLEDもオフにする
+    set_thruster_pwm(LED_PWM_CHANNEL, LED_PWM_OFF);
+}

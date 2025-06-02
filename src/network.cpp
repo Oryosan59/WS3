@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <sys/time.h> // gettimeofday のため
+
 // ネットワーク送受信コンテキストを初期化する関数
 bool network_init(NetworkContext *ctx, int recv_port, int send_port)
 {
@@ -19,6 +21,7 @@ bool network_init(NetworkContext *ctx, int recv_port, int send_port)
     ctx->send_socket = -1;
     ctx->client_addr_len = sizeof(ctx->client_addr_recv);
     ctx->client_addr_known = false;
+    gettimeofday(&ctx->last_successful_recv_time, NULL); // 現在時刻で初期化
 
     // --- 受信ソケット設定 ---
     ctx->recv_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -109,6 +112,7 @@ ssize_t network_receive(NetworkContext *ctx, char *buffer, size_t buffer_size)
     if (recv_len > 0)
     {
         buffer[recv_len] = '\0'; // Null終端
+        gettimeofday(&ctx->last_successful_recv_time, NULL); // 最終受信時刻を更新
         // 新しいクライアントか、IPが変わったかチェック
         if (!ctx->client_addr_known || ctx->client_addr_send.sin_addr.s_addr != ctx->client_addr_recv.sin_addr.s_addr)
         {

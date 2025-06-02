@@ -2,6 +2,7 @@
 #define NETWORK_H
 
 #include <netinet/in.h> // sockaddr_in 構造体やインターネット関連関数を使用するため
+#include <sys/time.h>   // struct timeval を使用するため
 #include <stdbool.h>    // bool 型を使用するため
 #include <stddef.h>     // size_t 型を使用するため
 
@@ -19,6 +20,7 @@ typedef struct
     struct sockaddr_in client_addr_send; // データの送信先となるクライアントのアドレス情報
     socklen_t client_addr_len;           // client_addr_recv のサイズを格納する変数
     bool client_addr_known;              // 送信先クライアントアドレスが設定されているかを示すフラグ
+    struct timeval last_successful_recv_time; // 最後にデータパケットを正常に受信した時刻
 } NetworkContext;
 
 // 関数のプロトタイプ宣言

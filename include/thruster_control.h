@@ -27,7 +27,8 @@ bool thruster_init();
 void thruster_disable();
 // ゲームパッドデータとジャイロデータに基づいてすべてのスラスターのPWM出力を更新する
 void thruster_update(const GamepadData &gamepad_data, const AxisData &gyro_data);
-
+// 全てのスラスターを指定されたPWM値に設定し、LEDをオフにする (フェイルセーフ用)
+void thruster_set_all_pwm(int pwm_value);
 // ヘルパー関数（他の場所で必要ない場合は .cpp 内部に保持できます）
 // float map_value(float x, float in_min, float in_max, float out_min, float out_max);
 
