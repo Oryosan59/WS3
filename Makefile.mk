@@ -1,69 +1,76 @@
-# Compiler and flags
+# コンパイラとフラグ
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic # Add any other desired compiler flags
+CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic # その他必要なコンパイラフラグを追加
 
-# --- Directory Definitions ---
+# --- ディレクトリ定義 ---
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
-INC_DIR = include # Project's own include directory
+INC_DIR = include # プロジェクト自身のインクルードディレクトリ
 
-# --- External Library Paths ---
-# Use the specific path provided in the command
-NAVIGATOR_LIB_PATH ?= $(HOME)/navigator-lib/target/debug
+# --- 外部ライブラリパス ---
+# コマンドで指定された特定のパスを使用
+NAVIGATOR_LIB_PATH = /home/pi/navigator-lib/target/debug
 
-# --- Include Directories ---
-# Add project's include dir and external lib include dir
+# --- GStreamer API のためのフラグとライブラリ ---
+# pkg-config を使用して GStreamer のコンパイルフラグとリンクライブラリを取得
+GSTREAMER_CFLAGS = $(shell pkg-config --cflags gstreamer-1.0)
+GSTREAMER_LIBS = $(shell pkg-config --libs gstreamer-1.0)
+CXXFLAGS += $(GSTREAMER_CFLAGS) # GStreamer のコンパイルフラグを追加
+
+# --- インクルードディレクトリ ---
+# プロジェクトのインクルードディレクトリと外部ライブラリのインクルードディレクトリを追加
 INCLUDES = -I$(INC_DIR) -I$(NAVIGATOR_LIB_PATH)
 
-# --- Library Directories ---
+# --- ライブラリディレクトリ ---
 LDFLAGS = -L$(NAVIGATOR_LIB_PATH) \
-          -Wl,-rpath=$(NAVIGATOR_LIB_PATH) # Set rpath for runtime linking
+          -Wl,-rpath=$(NAVIGATOR_LIB_PATH) # 実行時リンクのためのrpathを設定
 
-# --- Libraries to link ---
-# Use the specific library name provided in the command
+# --- リンクするライブラリ ---
+# コマンドで指定された特定のライブラリ名を使用
 LIBS = -lbluerobotics_navigator -lpthread -lm
+LIBS += $(GSTREAMER_LIBS) # GStreamer のリンクライブラリを追加
 
-# --- Target Executable ---
+# --- ターゲット実行ファイル ---
 TARGET_NAME = navigator_control
 TARGET = $(BIN_DIR)/$(TARGET_NAME)
 
-# --- Source and Object Files ---
-# Find all .cpp files in SRC_DIR
+# --- ソースファイルとオブジェクトファイル ---
+# SRC_DIR 内のすべての .cpp ファイルを検索
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-# Generate object file names in OBJ_DIR based on source file names
+# ソースファイル名に基づいて OBJ_DIR 内のオブジェクトファイル名を生成
 OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-# --- Default target: build the executable ---
+# --- デフォルトターゲット: 実行ファイルをビルド ---
 all: $(TARGET)
 
-# --- Rule to link the executable ---
-$(TARGET): $(OBJS) | $(BIN_DIR) # Ensure BIN_DIR exists before linking
+# --- 実行ファイルをリンクするルール ---
+$(TARGET): $(OBJS) | $(BIN_DIR) # リンク前に BIN_DIR が存在することを確認
 	$(CXX) $(LDFLAGS) $^ -o $@ $(LIBS)
 	@echo "Build complete: $(TARGET)"
 
-# --- Rule to compile source files into object files ---
-# Compile .cpp files from SRC_DIR into .o files in OBJ_DIR
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR) # Ensure OBJ_DIR exists before compiling
+# --- ソースファイルをオブジェクトファイルにコンパイルするルール ---
+# SRC_DIR の .cpp ファイルを OBJ_DIR の .o ファイルにコンパイル
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR) # コンパイル前に OBJ_DIR が存在することを確認
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-# --- Directory Creation ---
-# These targets create the directories if they don't exist
-# They are prerequisites for the compile and link rules using Order-only prerequisites (|)
+# --- ディレクトリ作成 ---
+# これらのターゲットは、ディレクトリが存在しない場合に作成します
+# これらは、順序のみの依存関係 (|) を使用するコンパイルおよびリンクルールの前提条件です
 $(OBJ_DIR):
 	@mkdir -p $@
 
 $(BIN_DIR):
 	@mkdir -p $@
 
-# --- Target to clean up build artifacts ---
+# --- ビルド成果物をクリーンアップするターゲット ---
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
 	@echo "Cleaned."
 
-# --- Phony targets (targets that don't represent files) ---
+# --- Phony ターゲット (ファイルを表さないターゲット) ---
 .PHONY: all clean $(OBJ_DIR) $(BIN_DIR)
 
-# --- Prevent intermediate files from being deleted ---
+# --- 中間ファイルが削除されるのを防ぐ ---
 .SECONDARY: $(OBJS)
