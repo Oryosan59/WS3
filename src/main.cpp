@@ -11,7 +11,7 @@
 #include <sys/time.h> // gettimeofday を使用するため
 
 // --- 定数 ---
-const double CONNECTION_TIMEOUT_SECONDS = 2.0; // 接続タイムアウトまでの秒数 (2秒)
+const double CONNECTION_TIMEOUT_SECONDS = 0.2; // 接続タイムアウトまでの秒数 (0.2秒)
 
 
 // --- メイン関数 ---
